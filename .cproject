@@ -25,7 +25,7 @@
 							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.base.1507501078" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.base"/>
 							<tool id="cdt.managedbuild.tool.gnu.c.compiler.base.256575234" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.base">
 								<option id="gnu.c.compiler.option.include.paths.646359905" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
-									<listOptionValue builtIn="false" value="/usr/src/linux-headers-3.12.0-patched+/include"/>
+									<listOptionValue builtIn="false" value="&quot;/usr/src/linux-headers-${KERNEL_VERSION}/include&quot;"/>
 								</option>
 								<option id="gnu.c.compiler.option.preprocessor.def.symbols.159964012" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="__KERNEL__=1"/>
