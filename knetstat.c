@@ -9,8 +9,6 @@
 
 #include <net/net_namespace.h>
 
-#define TMPSZ 150
-
 // Labels corresponding to the TCP states defined in tcp_states.h
 static const char *const tcp_state_names[] = {
 		"NONE",
