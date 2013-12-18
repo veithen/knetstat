@@ -29,7 +29,7 @@ static const char *const tcp_state_names[] = {
 
 static int tcp4_seq_show(struct seq_file *seq, void *v) {
 	if (v == SEQ_START_TOKEN) {
-		seq_printf(seq, "Proto Recv-Q Send-Q Local Address           Foreign Address         State\n");
+		seq_printf(seq, "Proto Recv-Q Send-Q Local Address           Foreign Address         State       Options\n");
 	} else {
 		struct tcp_iter_state *st = seq->private;
 		int pos;
@@ -42,13 +42,17 @@ static int tcp4_seq_show(struct seq_file *seq, void *v) {
 		__u16 destp;
 		__u16 srcp;
 		int state;
+		struct sock *sk;
 
 		switch (st->state) {
 			case TCP_SEQ_STATE_LISTENING:
 			case TCP_SEQ_STATE_ESTABLISHED: {
-				struct sock *sk = v;
-				const struct tcp_sock *tp = tcp_sk(sk);
-				const struct inet_sock *inet = inet_sk(sk);
+				const struct tcp_sock *tp;
+				const struct inet_sock *inet;
+
+				sk = v;
+				tp = tcp_sk(sk);
+				inet = inet_sk(sk);
 
 				// See get_tcp4_sock in tcp_ipv4.c
 				if (sk->sk_state == TCP_LISTEN) {
@@ -76,6 +80,7 @@ static int tcp4_seq_show(struct seq_file *seq, void *v) {
 				dest = ireq->rmt_addr;
 				destp = ntohs(ireq->rmt_port);
 				state = TCP_SYN_RECV;
+				sk = NULL;
 
 				break;
 			}
@@ -90,6 +95,7 @@ static int tcp4_seq_show(struct seq_file *seq, void *v) {
 				destp = ntohs(tw->tw_dport);
 				srcp = ntohs(tw->tw_sport);
 				state = tw->tw_substate;
+				sk = NULL;
 
 				break;
 			}
@@ -111,7 +117,11 @@ static int tcp4_seq_show(struct seq_file *seq, void *v) {
 			seq_printf(seq, "%d%n", destp, &len);
 		}
 		pos += len;
-		seq_printf(seq, "%*s%s\n", 68-pos, "", tcp_state_names[state]);
+		seq_printf(seq, "%*s%-12s", 68-pos, "", tcp_state_names[state]);
+		if (sk != NULL) {
+			seq_printf(seq, "SO_REUSEADDR=%d,SO_KEEPALIVE=%d", sk->sk_reuse, sock_flag(sk, SOCK_KEEPOPEN));
+		}
+		seq_printf(seq, "\n");
 	}
 	return 0;
 }
