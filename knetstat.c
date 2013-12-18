@@ -125,12 +125,21 @@ static int tcp4_seq_show(struct seq_file *seq, void *v) {
 }
 
 static const struct file_operations tcp_afinfo_seq_fops = {
-		.owner = THIS_MODULE, .open = tcp_seq_open, .read = seq_read, .llseek =
-				seq_lseek, .release = seq_release_net };
+		.owner = THIS_MODULE,
+		.open = tcp_seq_open,
+		.read = seq_read,
+		.llseek = seq_lseek,
+		.release = seq_release_net
+};
 
-static struct tcp_seq_afinfo tcp4_seq_afinfo = { .name = "tcpstat", .family =
-		AF_INET, .seq_fops = &tcp_afinfo_seq_fops, .seq_ops = { .show =
-		tcp4_seq_show, }, };
+static struct tcp_seq_afinfo tcp4_seq_afinfo = {
+		.name = "tcpstat",
+		.family = AF_INET,
+		.seq_fops = &tcp_afinfo_seq_fops,
+		.seq_ops = {
+				.show = tcp4_seq_show,
+		},
+};
 
 static int __net_init knetstat_net_init(struct net *net) {
 	return tcp_proc_register(net, &tcp4_seq_afinfo);
