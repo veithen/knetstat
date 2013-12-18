@@ -66,15 +66,13 @@ static int tcp4_seq_show(struct seq_file *seq, void *v) {
 				break;
 			}
 			case TCP_SEQ_STATE_OPENREQ: {
-				const struct sock *sk = st->syn_wait_sk;
-				const struct request_sock *req = v;
-				const struct inet_request_sock *ireq = inet_rsk(req);
+				const struct inet_request_sock *ireq = inet_rsk(v);
 
 				// See get_openreq4 in tcp_ipv4.c
 				rx_queue = 0;
 				tx_queue = 0;
 				src = ireq->loc_addr;
-				srcp = ntohs(inet_sk(sk)->inet_sport);
+				srcp = ntohs(inet_sk(st->syn_wait_sk)->inet_sport);
 				dest = ireq->rmt_addr;
 				destp = ntohs(ireq->rmt_port);
 				state = TCP_SYN_RECV;
