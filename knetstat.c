@@ -46,7 +46,7 @@ static const char *const tcp_state_names[] = {
 
 static int tcp_seq_show(struct seq_file *seq, void *v) {
 	if (v == SEQ_START_TOKEN) {
-		seq_printf(seq, "Proto Recv-Q Send-Q Local Address           Foreign Address         State       Options\n");
+		seq_printf(seq, "Proto Recv-Q Send-Q Local Address           Foreign Address         State       Recv-W Send-W Options\n");
 	} else {
 		struct tcp_iter_state *st = seq->private;
 		sa_family_t	family = st->family;
@@ -155,6 +155,11 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
 		}
 		seq_printf(seq, "%*s%-12s", 68-pos, "", tcp_state_names[state]);
 		if (sk != NULL) {
+			if (state == TCP_ESTABLISHED) {
+				seq_printf(seq, "%6d %6d ", tcp_sk(sk)->rcv_wnd, tcp_sk(sk)->snd_wnd);
+			} else {
+				seq_printf(seq, "%14s", "");
+			}
 			seq_printf(seq, "SO_REUSEADDR=%d,SO_KEEPALIVE=%d", sk->sk_reuse, sock_flag(sk, SOCK_KEEPOPEN));
 			// Note:
 			//  * Linux actually doubles the values for SO_RCVBUF and SO_SNDBUF (see sock_setsockopt in net/core/sock.c)
