@@ -16,7 +16,7 @@ Here is some sample output:
 Currently supported features:
 
 * Protocols: TCP (IPv4 and IPv6)
-* Socket options: `SO_REUSEADDR`, `SO_KEEPALIVE`
+* Socket options: `SO_REUSEADDR`, `SO_KEEPALIVE`, `SO_RCVBUF`, `SO_SNDBUF`
 
 To build the module, ensure that you have the headers for the currently running kernel as well as the basic build tools such as make and GCC. E.g. on Ubuntu:
 

@@ -156,6 +156,15 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
 		seq_printf(seq, "%*s%-12s", 68-pos, "", tcp_state_names[state]);
 		if (sk != NULL) {
 			seq_printf(seq, "SO_REUSEADDR=%d,SO_KEEPALIVE=%d", sk->sk_reuse, sock_flag(sk, SOCK_KEEPOPEN));
+			// Note:
+			//  * Linux actually doubles the values for SO_RCVBUF and SO_SNDBUF (see sock_setsockopt in net/core/sock.c)
+			//  * If these options are not set explicitly, the kernel may dynamically scale the buffer sizes
+			if (sk->sk_userlocks & SOCK_RCVBUF_LOCK) {
+				seq_printf(seq, ",SO_RCVBUF=%d", sk->sk_rcvbuf / 2);
+			}
+			if (sk->sk_userlocks & SOCK_SNDBUF_LOCK) {
+				seq_printf(seq, ",SO_SNDBUF=%d", sk->sk_sndbuf / 2);
+			}
 		}
 		seq_printf(seq, "\n");
 	}
