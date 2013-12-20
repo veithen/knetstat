@@ -176,6 +176,7 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
 			seq_printf(seq, "%*s", 5-len, "");
 
 			seq_printf(seq, "SO_REUSEADDR=%d,SO_KEEPALIVE=%d", sk->sk_reuse, sock_flag(sk, SOCK_KEEPOPEN));
+
 			// Note:
 			//  * Linux actually doubles the values for SO_RCVBUF and SO_SNDBUF (see sock_setsockopt in net/core/sock.c)
 			//  * If these options are not set explicitly, the kernel may dynamically scale the buffer sizes
@@ -185,6 +186,19 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
 			if (sk->sk_userlocks & SOCK_SNDBUF_LOCK) {
 				seq_printf(seq, ",SO_SNDBUF=%d", sk->sk_sndbuf / 2);
 			}
+
+			if (sk->sk_rcvtimeo != MAX_SCHEDULE_TIMEOUT) {
+				seq_printf(seq, ",SO_RCVTIMEO=%ldms", sk->sk_rcvtimeo*1000/HZ);
+			}
+			if (sk->sk_sndtimeo != MAX_SCHEDULE_TIMEOUT) {
+				seq_printf(seq, ",SO_SNDTIMEO=%ldms", sk->sk_sndtimeo*1000/HZ);
+			}
+
+			if (sock_flag(sk, SOCK_LINGER)) {
+				seq_printf(seq, ",SO_LINGER=%lds", sk->sk_lingertime / HZ);
+			}
+
+			seq_printf(seq, ",TCP_NODELAY=%d", !!(tcp_sk(sk)->nonagle&TCP_NAGLE_OFF));
 		}
 		seq_printf(seq, "\n");
 	}
