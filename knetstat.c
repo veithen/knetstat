@@ -31,22 +31,22 @@
 // Labels corresponding to the TCP states defined in tcp_states.h
 static const char *const tcp_state_names[] = {
 		"NONE",
-		"ESTABLISHED",
-		"SYN_SENT",
-		"SYN_RECV",
-		"FIN_WAIT1",
-		"FIN_WAIT2",
-		"TIME_WAIT",
-		"CLOSE",
-		"CLOSE_WAIT",
-		"LAST_ACK",
-		"LISTEN",
-		"CLOSING",
+		"ESTB",
+		"SYNS",
+		"SYNR",
+		"FNW1",
+		"FNW2",
+		"TIMW",
+		"CLSD",
+		"CLSW",
+		"LACK",
+		"LSTN",
+		"CLSG",
 };
 
 static int tcp_seq_show(struct seq_file *seq, void *v) {
 	if (v == SEQ_START_TOKEN) {
-		seq_printf(seq, "Proto Recv-Q Send-Q Local Address           Foreign Address         State       Recv-W Send-W Options\n");
+		seq_printf(seq, "Recv-Q Send-Q Local Address           Foreign Address         Stat Diag Options\n");
 	} else {
 		struct tcp_iter_state *st = seq->private;
 		sa_family_t	family = st->family;
@@ -143,23 +143,38 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
 			state = 0;
 		}
 
-		seq_printf(seq, "%-5s %6d %6d %n", family == AF_INET6 ? "tcp6" : "tcp", rx_queue, tx_queue, &pos);
+		seq_printf(seq, "%6d %6d %n", rx_queue, tx_queue, &pos);
 		seq_printf(seq, family == AF_INET6 ? "%pI6c%n" : "%pI4%n", src, &len); pos += len;
 		seq_printf(seq, ":%d%n", srcp, &len); pos += len;
-		seq_printf(seq, "%*s%n", 44-pos, "", &len); pos += len;
+		seq_printf(seq, "%*s%n", 38-pos, "", &len); pos += len;
 		seq_printf(seq, family == AF_INET6 ? "%pI6c%n" : "%pI4%n", dest, &len); pos += len;
 		if (destp == 0) {
 			seq_printf(seq, ":*"); pos += 2;
 		} else {
 			seq_printf(seq, ":%d%n", destp, &len); pos += len;
 		}
-		seq_printf(seq, "%*s%-12s", 68-pos, "", tcp_state_names[state]);
+		seq_printf(seq, "%*s%s ", 62-pos, "", tcp_state_names[state]);
 		if (sk != NULL) {
+			len = 0;
 			if (state == TCP_ESTABLISHED) {
-				seq_printf(seq, "%6d %6d ", tcp_sk(sk)->rcv_wnd, tcp_sk(sk)->snd_wnd);
-			} else {
-				seq_printf(seq, "%14s", "");
+				const struct tcp_sock *tp = tcp_sk(sk);
+				if (tp->rcv_wnd == 0 && tp->snd_wnd == 0) {
+					// Both receiver and sender windows are 0; we can neither receive nor send more data
+					seq_puts(seq, ">|<"); len += 3;
+				} else if (tp->rcv_wnd == 0) {
+					// Receiver window is 0; we cannot receive more data
+					seq_puts(seq, "|<"); len += 2;
+				} else if (tp->snd_wnd == 0) {
+					// Sender window is 0; we cannot send more data
+					seq_puts(seq, ">|"); len += 2;
+				} else if (tp->snd_nxt > tp->snd_una && tcp_time_stamp-tp->rcv_tstamp > HZ) {
+					// There are unacknowledged packets and the last ACK was received more than 1 second ago;
+					// this is an indication for network problems
+					seq_puts(seq, ">#"); len += 2;
+				}
 			}
+			seq_printf(seq, "%*s", 5-len, "");
+
 			seq_printf(seq, "SO_REUSEADDR=%d,SO_KEEPALIVE=%d", sk->sk_reuse, sock_flag(sk, SOCK_KEEPOPEN));
 			// Note:
 			//  * Linux actually doubles the values for SO_RCVBUF and SO_SNDBUF (see sock_setsockopt in net/core/sock.c)
