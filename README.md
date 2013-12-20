@@ -20,9 +20,11 @@ Here is some sample output:
 
 The "Diag" column can display the following diagnostic indicators:
 
-| `>|` | The sender window (i.e. the window advertised by the remote endpoint) is 0. No data can be sent to the peer. |
-| `|<` | The receiver window (i.e. the window advertised by the local endpoint) is 0. No data can be received from the peer. |
-| `>#` | There are unacknowledged packets and the last ACK was received more than one second ago. This is an indication that there are network problems or that the peer crashed. |
+| Indicator | Meaning |
+| ---- | ---- |
+| <code>>&#124;</code> | The sender window (i.e. the window advertised by the remote endpoint) is 0. No data can be sent to the peer. |
+| <code>&#124;&lt;</code> | The receiver window (i.e. the window advertised by the local endpoint) is 0. No data can be received from the peer. |
+| `>#` | There are unacknowledged packets and the last ACK was received more than one second ago. This may be an indication that there are network problems or that the peer crashed. |
 
 Currently supported features
 ----------------------------
@@ -44,7 +46,7 @@ Notes for Java developers
 
 The following table shows the correspondence between socket options reported by knetstat and setter methods defined by the `java.net.Socket` class. This information can be used to infer the configuration that a Java process applied to a `java.net.Socket` instance based on the output of knetstat. The mapping is straightforward, except for `setSoTimeout`.
 
-| `java.net.Socket` method | Socket option reported by knetstat |
+| Java method              | Socket option reported by knetstat |
 |--------------------------|------------------------------------|
 | `setKeepAlive`           | `SO_KEEPALIVE`                     |
 | `setReceiveBufferSize`   | `SO_RCVBUF`                        |
@@ -54,4 +56,4 @@ The following table shows the correspondence between socket options reported by 
 | `setSoTimeout`           | none [*]                           |
 | `setTcpNoDelay`          | `TCP_NODELAY`                      |
 
-[*] In contrast to what the Javadoc suggests, the `setSoTimeout` method doesn't actually set any socket option on Linux. By default, `java.net.Socket` instances are backed by `java.net.SocksSocketImpl` (even if no SOCKS proxy is configured). This class extends `java.net.AbstractPlainSocketImpl` which stores the timeout internally for later use by the read methods in `java.net.SocketInputStream`. They in turn pass the timeout to an invocation of the [poll](http://linux.die.net/man/2/poll) system call that waits until data is available for reading (or an error occurs).
+[*] In contrast to what the Javadoc suggests, the `setSoTimeout` method doesn't actually set any socket option on Linux. By default, `java.net.Socket` instances are backed by `java.net.SocksSocketImpl` (even if no SOCKS proxy is configured). This class extends `java.net.AbstractPlainSocketImpl` which stores the timeout internally for later use by the read methods in `java.net.SocketInputStream`. They in turn pass the timeout to an invocation of the [`poll`](http://linux.die.net/man/2/poll) system call that waits until data is available for reading (or an error occurs).
