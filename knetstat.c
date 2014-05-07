@@ -17,6 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+#include <linux/version.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/init.h>
@@ -27,6 +28,14 @@
 #include <net/tcp_states.h>
 
 #include <net/net_namespace.h>
+
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,32)
+#define inet_daddr daddr
+#define inet_rcv_saddr rcv_saddr
+#define inet_dport dport
+#define inet_sport sport
+#endif
+
 
 // Labels corresponding to the TCP states defined in tcp_states.h
 static const char *const tcp_state_names[] = {
@@ -205,6 +214,26 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
 	return 0;
 }
 
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(3,1,0)
+int tcp_seq_open(struct inode *inode, struct file *file)
+{
+	struct tcp_seq_afinfo *afinfo = PDE_DATA(inode);
+	struct tcp_iter_state *s;
+	int err;
+	err = seq_open_net(inode, file, &afinfo->seq_ops,
+			   sizeof(struct tcp_iter_state));
+	if (err < 0)
+		return err;
+
+	s = ((struct seq_file *)file->private_data)->private;
+	s->family = afinfo->family;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,34)
+	s->last_pos = 0;
+#endif
+	return 0;
+}
+#endif
+
 static const struct file_operations tcp_afinfo_seq_fops = {
 		.owner = THIS_MODULE,
 		.open = tcp_seq_open,
@@ -216,7 +245,17 @@ static const struct file_operations tcp_afinfo_seq_fops = {
 static struct tcp_seq_afinfo tcp4_seq_afinfo = {
 		.name = "tcpstat",
 		.family = AF_INET,
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(3,1,0)
+		.seq_fops = {
+				.owner = THIS_MODULE,
+				.open = tcp_seq_open,
+				.read = seq_read,
+				.llseek = seq_lseek,
+				.release = seq_release_net
+		},
+#else
 		.seq_fops = &tcp_afinfo_seq_fops,
+#endif
 		.seq_ops = {
 				.show = tcp_seq_show,
 		},
@@ -225,7 +264,17 @@ static struct tcp_seq_afinfo tcp4_seq_afinfo = {
 static struct tcp_seq_afinfo tcp6_seq_afinfo = {
 		.name = "tcp6stat",
 		.family = AF_INET6,
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(3,1,0)
+		.seq_fops = {
+				.owner = THIS_MODULE,
+				.open = tcp_seq_open,
+				.read = seq_read,
+				.llseek = seq_lseek,
+				.release = seq_release_net
+		},
+#else
 		.seq_fops = &tcp_afinfo_seq_fops,
+#endif
 		.seq_ops = {
 				.show = tcp_seq_show,
 		},
