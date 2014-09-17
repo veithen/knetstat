@@ -1,6 +1,7 @@
 /**
  * knetstat
  * Copyright (C) 2013  Andreas Veithen
+ * Copyright (C) 2014  Google
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -50,8 +51,6 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
 	} else {
 		struct tcp_iter_state *st = seq->private;
 		sa_family_t	family = st->family;
-		int pos;
-		int len;
 
 		int rx_queue;
 		int tx_queue;
@@ -65,32 +64,49 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
 		switch (st->state) {
 			case TCP_SEQ_STATE_LISTENING:
 			case TCP_SEQ_STATE_ESTABLISHED: {
-				const struct tcp_sock *tp;
-				const struct inet_sock *inet;
-
 				sk = v;
-				tp = tcp_sk(sk);
-				inet = inet_sk(sk);
+				if (sk->sk_state == TCP_TIME_WAIT) {
+					const struct inet_timewait_sock *tw = v;
 
-				// See get_tcp4_sock in tcp_ipv4.c and get_tcp6_sock in tcp_ipv6.c
-				if (sk->sk_state == TCP_LISTEN) {
-					rx_queue = sk->sk_ack_backlog;
+					// See get_timewait4_sock in tcp_ipv4.c and get_timewait6_sock in tcp_ipv6.c
+					rx_queue = 0;
+					tx_queue = 0;
+					if (family == AF_INET6) {
+						dest = &tw->tw_v6_daddr;
+						src = &tw->tw_v6_rcv_saddr;
+					} else {
+						dest = &tw->tw_daddr;
+						src = &tw->tw_rcv_saddr;
+					}
+					destp = ntohs(tw->tw_dport);
+					srcp = ntohs(tw->tw_sport);
+					state = tw->tw_substate;
+					sk = NULL;
 				} else {
-					rx_queue = max_t(int, tp->rcv_nxt - tp->copied_seq, 0);
-				}
-				tx_queue = tp->write_seq - tp->snd_una;
-				if (family == AF_INET6) {
-					const struct ipv6_pinfo *np = inet6_sk(sk);
-					dest = &np->daddr;
-					src = &np->rcv_saddr;
-				} else {
-					dest = &inet->inet_daddr;
-					src = &inet->inet_rcv_saddr;
-				}
-				destp = ntohs(inet->inet_dport);
-				srcp = ntohs(inet->inet_sport);
-				state = sk->sk_state;
+					const struct tcp_sock *tp;
+					const struct inet_sock *inet;
 
+					tp = tcp_sk(sk);
+					inet = inet_sk(sk);
+
+					// See get_tcp4_sock in tcp_ipv4.c and get_tcp6_sock in tcp_ipv6.c
+					if (sk->sk_state == TCP_LISTEN) {
+						rx_queue = sk->sk_ack_backlog;
+					} else {
+						rx_queue = max_t(int, tp->rcv_nxt - tp->copied_seq, 0);
+					}
+					tx_queue = tp->write_seq - tp->snd_una;
+					if (family == AF_INET6) {
+						dest = &sk->sk_v6_daddr;
+						src = &sk->sk_v6_rcv_saddr;
+					} else {
+						dest = &inet->inet_daddr;
+						src = &inet->inet_rcv_saddr;
+					}
+					destp = ntohs(inet->inet_dport);
+					srcp = ntohs(inet->inet_sport);
+					state = sk->sk_state;
+				}
 				break;
 			}
 			case TCP_SEQ_STATE_OPENREQ: {
@@ -100,37 +116,15 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
 				rx_queue = 0;
 				tx_queue = 0;
 				if (family == AF_INET6) {
-					const struct inet6_request_sock *ireq6 = inet6_rsk(v);
-					src = &ireq6->loc_addr;
-					dest = &ireq6->rmt_addr;
+					src = &ireq->ir_v6_loc_addr;
+					dest = &ireq->ir_v6_rmt_addr;
 				} else {
-					src = &ireq->loc_addr;
-					dest = &ireq->rmt_addr;
+					src = &ireq->ir_loc_addr;
+					dest = &ireq->ir_rmt_addr;
 				}
 				srcp = ntohs(inet_sk(st->syn_wait_sk)->inet_sport);
-				destp = ntohs(ireq->rmt_port);
+				destp = ntohs(ireq->ir_rmt_port);
 				state = TCP_SYN_RECV;
-				sk = NULL;
-
-				break;
-			}
-			case TCP_SEQ_STATE_TIME_WAIT: {
-				const struct inet_timewait_sock *tw = v;
-
-				// See get_timewait4_sock in tcp_ipv4.c and get_timewait6_sock in tcp_ipv6.c
-				rx_queue = 0;
-				tx_queue = 0;
-				if (family == AF_INET6) {
-					const struct inet6_timewait_sock *tw6 = inet6_twsk((struct sock *)tw);
-					dest = &tw6->tw_v6_daddr;
-					src  = &tw6->tw_v6_rcv_saddr;
-				} else {
-					dest = &tw->tw_daddr;
-					src = &tw->tw_rcv_saddr;
-				}
-				destp = ntohs(tw->tw_dport);
-				srcp = ntohs(tw->tw_sport);
-				state = tw->tw_substate;
 				sk = NULL;
 
 				break;
@@ -143,37 +137,40 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
 			state = 0;
 		}
 
-		seq_printf(seq, "%6d %6d %n", rx_queue, tx_queue, &pos);
-		seq_printf(seq, family == AF_INET6 ? "%pI6c%n" : "%pI4%n", src, &len); pos += len;
-		seq_printf(seq, ":%d%n", srcp, &len); pos += len;
-		seq_printf(seq, "%*s%n", 38-pos, "", &len); pos += len;
-		seq_printf(seq, family == AF_INET6 ? "%pI6c%n" : "%pI4%n", dest, &len); pos += len;
+		seq_printf(seq, "%6d %6d ", rx_queue, tx_queue);
+		seq_setwidth(seq, 23);
+		seq_printf(seq, family == AF_INET6 ? "%pI6c" : "%pI4", src);
+		seq_printf(seq, ":%d", srcp);
+		seq_pad(seq, ' ');
+		seq_setwidth(seq, 23);
+		seq_printf(seq, family == AF_INET6 ? "%pI6c" : "%pI4", dest);
 		if (destp == 0) {
-			seq_printf(seq, ":*"); pos += 2;
+			seq_puts(seq, ":*");
 		} else {
-			seq_printf(seq, ":%d%n", destp, &len); pos += len;
+			seq_printf(seq, ":%d", destp);
 		}
-		seq_printf(seq, "%*s%s ", 62-pos, "", tcp_state_names[state]);
+		seq_pad(seq, ' ');
+		seq_printf(seq, "%s ", tcp_state_names[state]);
 		if (sk != NULL) {
-			len = 0;
+			seq_setwidth(seq, 4);
 			if (state == TCP_ESTABLISHED) {
 				const struct tcp_sock *tp = tcp_sk(sk);
 				if (tp->rcv_wnd == 0 && tp->snd_wnd == 0) {
 					// Both receiver and sender windows are 0; we can neither receive nor send more data
-					seq_puts(seq, ">|<"); len += 3;
+					seq_puts(seq, ">|<");
 				} else if (tp->rcv_wnd == 0) {
 					// Receiver window is 0; we cannot receive more data
-					seq_puts(seq, "|<"); len += 2;
+					seq_puts(seq, "|<");
 				} else if (tp->snd_wnd == 0) {
 					// Sender window is 0; we cannot send more data
-					seq_puts(seq, ">|"); len += 2;
+					seq_puts(seq, ">|");
 				} else if (tp->snd_nxt > tp->snd_una && tcp_time_stamp-tp->rcv_tstamp > HZ) {
 					// There are unacknowledged packets and the last ACK was received more than 1 second ago;
 					// this is an indication for network problems
-					seq_puts(seq, ">#"); len += 2;
+					seq_puts(seq, ">#");
 				}
 			}
-			seq_printf(seq, "%*s", 5-len, "");
+			seq_pad(seq, ' ');
 
 			seq_printf(seq, "SO_REUSEADDR=%d,SO_KEEPALIVE=%d", sk->sk_reuse, sock_flag(sk, SOCK_KEEPOPEN));
 
