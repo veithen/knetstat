@@ -35,7 +35,7 @@ Currently supported features
 Compatibility
 -------------
 
-The current knetstat code is compatible with kernel version 3.13.
+The current knetstat code has been successfully tested with kernel versions 3.13 and 3.18. It may work with other versions as well.
 
 Build
 -----
