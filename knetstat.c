@@ -44,6 +44,7 @@ static const char *const tcp_state_names[] = {
 		"LACK",
 		"LSTN",
 		"CLSG",
+		"NSYNR"
 };
 
 static int tcp_seq_show(struct seq_file *seq, void *v) {
