@@ -18,6 +18,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+#include <linux/version.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/init.h>
@@ -43,6 +44,7 @@ static const char *const tcp_state_names[] = {
 		"LACK",
 		"LSTN",
 		"CLSG",
+		"SYNR"
 };
 
 static int tcp_seq_show(struct seq_file *seq, void *v) {
@@ -109,6 +111,7 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
 				}
 				break;
 			}
+			#if LINUX_VERSION_CODE <= KERNEL_VERSION(4,4,0)
 			case TCP_SEQ_STATE_OPENREQ: {
 				const struct inet_request_sock *ireq = inet_rsk(v);
 
@@ -129,6 +132,7 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
 
 				break;
 			}
+			#endif
 			default:
 				return 0;
 		}
