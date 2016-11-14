@@ -1,3 +1,4 @@
+KBUILD_EXTRA_SYMBOLS := /lib/modules/$(shell uname -r)/build/Module.symvers
 obj-m += knetstat.o
 
 all:
