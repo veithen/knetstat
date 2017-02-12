@@ -92,12 +92,21 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
 					inet = inet_sk(sk);
 
 					// See get_tcp4_sock in tcp_ipv4.c and get_tcp6_sock in tcp_ipv6.c
-					if (sk->sk_state == TCP_LISTEN) {
-						rx_queue = sk->sk_ack_backlog;
-					} else {
-						rx_queue = max_t(int, tp->rcv_nxt - tp->copied_seq, 0);
+					switch (sk->sk_state) {
+						case TCP_LISTEN:
+							rx_queue = sk->sk_ack_backlog;
+							tx_queue = 0;
+							break;
+						#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,5,0)
+						case TCP_NEW_SYN_RECV:
+							rx_queue = 0;
+							tx_queue = 0;
+							break;
+						#endif
+						default:
+							rx_queue = max_t(int, tp->rcv_nxt - tp->copied_seq, 0);
+							tx_queue = tp->write_seq - tp->snd_una;
 					}
-					tx_queue = tp->write_seq - tp->snd_una;
 					if (family == AF_INET6) {
 						dest = &sk->sk_v6_daddr;
 						src = &sk->sk_v6_rcv_saddr;
@@ -108,15 +117,15 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
 					destp = ntohs(inet->inet_dport);
 					srcp = ntohs(inet->inet_sport);
 					state = sk->sk_state;
-					#if LINUX_VERSION_CODE > KERNEL_VERSION(4,4,0)
-					if (sk->sk_state == TCP_SYN_RECV) {
+					#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,5,0)
+					if (sk->sk_state == TCP_NEW_SYN_RECV) {
 						sk = NULL;
 					}
 					#endif
 				}
 				break;
 			}
-			#if LINUX_VERSION_CODE <= KERNEL_VERSION(4,4,0)
+			#if LINUX_VERSION_CODE < KERNEL_VERSION(4,5,0)
 			case TCP_SEQ_STATE_OPENREQ: {
 				const struct inet_request_sock *ireq = inet_rsk(v);
 
