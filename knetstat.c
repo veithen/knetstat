@@ -1,6 +1,6 @@
 /**
  * knetstat
- * Copyright (C) 2013  Andreas Veithen
+ * Copyright (C) 2013-2017  Andreas Veithen
  * Copyright (C) 2014  Google
  *
  * This program is free software; you can redistribute it and/or
@@ -108,6 +108,11 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
 					destp = ntohs(inet->inet_dport);
 					srcp = ntohs(inet->inet_sport);
 					state = sk->sk_state;
+					#if LINUX_VERSION_CODE > KERNEL_VERSION(4,4,0)
+					if (sk->sk_state == TCP_SYN_RECV) {
+						sk = NULL;
+					}
+					#endif
 				}
 				break;
 			}
