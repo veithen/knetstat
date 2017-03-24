@@ -125,7 +125,7 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
 				}
 				break;
 			}
-			#if LINUX_VERSION_CODE < KERNEL_VERSION(4,5,0)
+			#if LINUX_VERSION_CODE < KERNEL_VERSION(4,4,0)
 			case TCP_SEQ_STATE_OPENREQ: {
 				const struct inet_request_sock *ireq = inet_rsk(v);
 
