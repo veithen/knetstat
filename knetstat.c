@@ -97,7 +97,7 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
 							rx_queue = sk->sk_ack_backlog;
 							tx_queue = 0;
 							break;
-						#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,5,0)
+						#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
 						case TCP_NEW_SYN_RECV:
 							rx_queue = 0;
 							tx_queue = 0;
@@ -117,7 +117,7 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
 					destp = ntohs(inet->inet_dport);
 					srcp = ntohs(inet->inet_sport);
 					state = sk->sk_state;
-					#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,5,0)
+					#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
 					if (sk->sk_state == TCP_NEW_SYN_RECV) {
 						sk = NULL;
 					}
