@@ -32,6 +32,11 @@ Currently supported features
 * Protocols: TCP (IPv4 and IPv6)
 * Socket options: `SO_REUSEADDR`, `SO_KEEPALIVE`, `SO_RCVBUF`, `SO_SNDBUF`, `SO_RCVTIMEO`, `SO_SNDTIMEO`, `SO_LINGER`, `TCP_NODELAY`
 
+Compatibility
+-------------
+
+The current knetstat code has been successfully tested with kernel versions 3.13, 3.18, 4.4, 4.8 and 4.9. It may work with other versions as well.
+
 Build
 -----
 
