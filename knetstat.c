@@ -49,8 +49,6 @@ static const char *const tcp_state_names[] = {
 };
 
 static void sock_common_options_show(struct seq_file *seq, struct sock *sk) {
-	seq_printf(seq, "SO_REUSEADDR=%d,SO_REUSEPORT=%d,SO_KEEPALIVE=%d", sk->sk_reuse, sk->sk_reuseport, sock_flag(sk, SOCK_KEEPOPEN));
-
 	// Note:
 	//  * Linux actually doubles the values for SO_RCVBUF and SO_SNDBUF (see sock_setsockopt in net/core/sock.c)
 	//  * If these options are not set explicitly, the kernel may dynamically scale the buffer sizes
@@ -218,6 +216,9 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
 			}
 			seq_pad(seq, ' ');
 
+
+			seq_printf(seq, "SO_REUSEADDR=%d,SO_REUSEPORT=%d,SO_KEEPALIVE=%d", sk->sk_reuse, sk->sk_reuseport, sock_flag(sk, SOCK_KEEPOPEN));
+
 			sock_common_options_show(seq, sk);
 
 			seq_printf(seq, ",TCP_NODELAY=%d", !!(tcp_sk(sk)->nonagle&TCP_NAGLE_OFF));
@@ -281,6 +282,8 @@ static int udp_seq_show(struct seq_file *seq, void *v) {
 		seq_printf(seq, "%6d %6d ", rx_queue, tx_queue);
 		addr_port_show(seq, family, src, srcp);
 		addr_port_show(seq, family, dest, destp);
+
+		seq_printf(seq, "SO_REUSEADDR=%d,SO_REUSEPORT=%d", sk->sk_reuse, sk->sk_reuseport);
 
 		sock_common_options_show(seq, sk);
 
