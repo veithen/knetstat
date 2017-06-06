@@ -27,6 +27,7 @@
 #include <linux/types.h>
 #include <net/tcp.h>
 #include <net/tcp_states.h>
+#include <net/udp.h>
 
 #include <net/net_namespace.h>
 
@@ -47,12 +48,46 @@ static const char *const tcp_state_names[] = {
 		"SYNR"
 };
 
+static void sock_common_options_show(struct seq_file *seq, struct sock *sk) {
+	// Note:
+	//  * Linux actually doubles the values for SO_RCVBUF and SO_SNDBUF (see sock_setsockopt in net/core/sock.c)
+	//  * If these options are not set explicitly, the kernel may dynamically scale the buffer sizes
+	if (sk->sk_userlocks & SOCK_RCVBUF_LOCK) {
+		seq_printf(seq, ",SO_RCVBUF=%d", sk->sk_rcvbuf / 2);
+	}
+	if (sk->sk_userlocks & SOCK_SNDBUF_LOCK) {
+		seq_printf(seq, ",SO_SNDBUF=%d", sk->sk_sndbuf / 2);
+	}
+
+	if (sk->sk_rcvtimeo != MAX_SCHEDULE_TIMEOUT) {
+		seq_printf(seq, ",SO_RCVTIMEO=%ldms", sk->sk_rcvtimeo*1000/HZ);
+	}
+	if (sk->sk_sndtimeo != MAX_SCHEDULE_TIMEOUT) {
+		seq_printf(seq, ",SO_SNDTIMEO=%ldms", sk->sk_sndtimeo*1000/HZ);
+	}
+
+	if (sock_flag(sk, SOCK_LINGER)) {
+		seq_printf(seq, ",SO_LINGER=%lds", sk->sk_lingertime / HZ);
+	}
+}
+
+static void addr_port_show(struct seq_file *seq, sa_family_t family, const void* addr, __u16 port) {
+	seq_setwidth(seq, 23);
+	seq_printf(seq, family == AF_INET6 ? "%pI6c" : "%pI4", addr);
+	if (port == 0) {
+		seq_puts(seq, ":*");
+	} else {
+		seq_printf(seq, ":%d", port);
+	}
+	seq_pad(seq, ' ');
+}
+
 static int tcp_seq_show(struct seq_file *seq, void *v) {
 	if (v == SEQ_START_TOKEN) {
 		seq_printf(seq, "Recv-Q Send-Q Local Address           Foreign Address         Stat Diag Options\n");
 	} else {
 		struct tcp_iter_state *st = seq->private;
-		sa_family_t	family = st->family;
+		sa_family_t family = st->family;
 
 		int rx_queue;
 		int tx_queue;
@@ -156,18 +191,9 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
 		}
 
 		seq_printf(seq, "%6d %6d ", rx_queue, tx_queue);
-		seq_setwidth(seq, 23);
-		seq_printf(seq, family == AF_INET6 ? "%pI6c" : "%pI4", src);
-		seq_printf(seq, ":%d", srcp);
-		seq_pad(seq, ' ');
-		seq_setwidth(seq, 23);
-		seq_printf(seq, family == AF_INET6 ? "%pI6c" : "%pI4", dest);
-		if (destp == 0) {
-			seq_puts(seq, ":*");
-		} else {
-			seq_printf(seq, ":%d", destp);
-		}
-		seq_pad(seq, ' ');
+		addr_port_show(seq, family, src, srcp);
+		addr_port_show(seq, family, dest, destp);
+
 		seq_printf(seq, "%s ", tcp_state_names[state]);
 		if (sk != NULL) {
 			seq_setwidth(seq, 4);
@@ -190,28 +216,10 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
 			}
 			seq_pad(seq, ' ');
 
+
 			seq_printf(seq, "SO_REUSEADDR=%d,SO_REUSEPORT=%d,SO_KEEPALIVE=%d", sk->sk_reuse, sk->sk_reuseport, sock_flag(sk, SOCK_KEEPOPEN));
 
-			// Note:
-			//  * Linux actually doubles the values for SO_RCVBUF and SO_SNDBUF (see sock_setsockopt in net/core/sock.c)
-			//  * If these options are not set explicitly, the kernel may dynamically scale the buffer sizes
-			if (sk->sk_userlocks & SOCK_RCVBUF_LOCK) {
-				seq_printf(seq, ",SO_RCVBUF=%d", sk->sk_rcvbuf / 2);
-			}
-			if (sk->sk_userlocks & SOCK_SNDBUF_LOCK) {
-				seq_printf(seq, ",SO_SNDBUF=%d", sk->sk_sndbuf / 2);
-			}
-
-			if (sk->sk_rcvtimeo != MAX_SCHEDULE_TIMEOUT) {
-				seq_printf(seq, ",SO_RCVTIMEO=%ldms", sk->sk_rcvtimeo*1000/HZ);
-			}
-			if (sk->sk_sndtimeo != MAX_SCHEDULE_TIMEOUT) {
-				seq_printf(seq, ",SO_SNDTIMEO=%ldms", sk->sk_sndtimeo*1000/HZ);
-			}
-
-			if (sock_flag(sk, SOCK_LINGER)) {
-				seq_printf(seq, ",SO_LINGER=%lds", sk->sk_lingertime / HZ);
-			}
+			sock_common_options_show(seq, sk);
 
 			seq_printf(seq, ",TCP_NODELAY=%d", !!(tcp_sk(sk)->nonagle&TCP_NAGLE_OFF));
 		}
@@ -246,16 +254,108 @@ static struct tcp_seq_afinfo tcp6_seq_afinfo = {
 		},
 };
 
+static int udp_seq_show(struct seq_file *seq, void *v) {
+	if (v == SEQ_START_TOKEN) {
+		seq_printf(seq, "Recv-Q Send-Q Local Address           Foreign Address         Options\n");
+	} else {
+		struct udp_iter_state *st = seq->private;
+		sa_family_t family = st->family;
+		struct sock *sk = v;
+		int tx_queue = sk_wmem_alloc_get(sk);
+		int rx_queue = sk_rmem_alloc_get(sk);
+		struct inet_sock *inet = inet_sk(sk);
+		const void *dest;
+		const void *src;
+		__u16 destp;
+		__u16 srcp;
+
+		if (family == AF_INET6) {
+			dest = &sk->sk_v6_daddr;
+			src = &sk->sk_v6_rcv_saddr;
+		} else {
+			dest = &inet->inet_daddr;
+			src = &inet->inet_rcv_saddr;
+		}
+		destp = ntohs(inet->inet_dport);
+		srcp = ntohs(inet->inet_sport);
+
+		seq_printf(seq, "%6d %6d ", rx_queue, tx_queue);
+		addr_port_show(seq, family, src, srcp);
+		addr_port_show(seq, family, dest, destp);
+
+		seq_printf(seq, "SO_REUSEADDR=%d,SO_REUSEPORT=%d", sk->sk_reuse, sk->sk_reuseport);
+
+		sock_common_options_show(seq, sk);
+
+		seq_printf(seq, "\n");
+	}
+	return 0;
+}
+
+static const struct file_operations udp_afinfo_seq_fops = {
+		.owner = THIS_MODULE,
+		.open = udp_seq_open,
+		.read = seq_read,
+		.llseek = seq_lseek,
+		.release = seq_release_net
+};
+
+static struct udp_seq_afinfo udp4_seq_afinfo = {
+		.name = "udpstat",
+		.family = AF_INET,
+		.udp_table = &udp_table,
+		.seq_fops = &udp_afinfo_seq_fops,
+		.seq_ops = {
+				.show = udp_seq_show,
+		},
+};
+
+static struct udp_seq_afinfo udp6_seq_afinfo = {
+		.name = "udp6stat",
+		.family = AF_INET6,
+		.udp_table = &udp_table,
+		.seq_fops = &udp_afinfo_seq_fops,
+		.seq_ops = {
+				.show = udp_seq_show,
+		},
+};
+
 static int __net_init knetstat_net_init(struct net *net) {
 	int ret;
+	int registered = 0;
 
 	ret = tcp_proc_register(net, &tcp4_seq_afinfo);
 	if (ret < 0) {
-		return ret;
+		goto cleanup;
 	}
+	++registered;
 
 	ret = tcp_proc_register(net, &tcp6_seq_afinfo);
 	if (ret < 0) {
+		goto cleanup;
+	}
+	++registered;
+
+	ret = udp_proc_register(net, &udp4_seq_afinfo);
+	if (ret < 0) {
+		goto cleanup;
+	}
+	++registered;
+
+	ret = udp_proc_register(net, &udp6_seq_afinfo);
+	if (ret < 0) {
+		goto cleanup;
+	}
+
+	return ret;
+cleanup:
+	if (registered > 2) {
+		udp_proc_unregister(net, &udp4_seq_afinfo);
+	}
+	if (registered > 1) {
+		tcp_proc_unregister(net, &tcp6_seq_afinfo);
+	}
+	if (registered > 0) {
 		tcp_proc_unregister(net, &tcp4_seq_afinfo);
 	}
 	return ret;
@@ -264,6 +364,8 @@ static int __net_init knetstat_net_init(struct net *net) {
 static void __net_exit knetstat_net_exit(struct net *net) {
 	tcp_proc_unregister(net, &tcp4_seq_afinfo);
 	tcp_proc_unregister(net, &tcp6_seq_afinfo);
+	udp_proc_unregister(net, &udp4_seq_afinfo);
+	udp_proc_unregister(net, &udp6_seq_afinfo);
 }
 
 static struct pernet_operations knetstat_net_ops = { .init = knetstat_net_init,
