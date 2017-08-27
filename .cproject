@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<?fileVersion 4.0.0?>
-
-<cproject storage_type_id="org.eclipse.cdt.core.XmlProjectDescriptionStorage">
+<?fileVersion 4.0.0?><cproject storage_type_id="org.eclipse.cdt.core.XmlProjectDescriptionStorage">
 	<storageModule moduleId="org.eclipse.cdt.core.settings">
 		<cconfiguration id="cdt.managedbuild.toolchain.gnu.base.922226827">
 			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="cdt.managedbuild.toolchain.gnu.base.922226827" moduleId="org.eclipse.cdt.core.settings" name="Default">
@@ -26,10 +24,16 @@
 							<tool id="cdt.managedbuild.tool.gnu.c.compiler.base.256575234" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.base">
 								<option id="gnu.c.compiler.option.include.paths.646359905" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;/usr/src/linux-headers-${KERNEL_VERSION}/include&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;/usr/src/linux-headers-${KERNEL_VERSION}/include/generated/uapi&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;/usr/src/linux-headers-${KERNEL_VERSION}/arch/x86/include/uapi&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;/usr/src/linux-headers-${KERNEL_VERSION}/include/uapi&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;/usr/src/linux-headers-${KERNEL_VERSION}/arch/x86/include&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;/usr/src/linux-headers-${KERNEL_VERSION}/arch/x86/include/generated&quot;"/>
 								</option>
 								<option id="gnu.c.compiler.option.preprocessor.def.symbols.159964012" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="__KERNEL__=1"/>
 									<listOptionValue builtIn="false" value="CONFIG_PROC_FS=1"/>
+									<listOptionValue builtIn="false" value="CONFIG_IPV6=y"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1274773108" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
@@ -65,4 +69,5 @@
 			<resource resourceType="PROJECT" workspacePath="/knetstat"/>
 		</configuration>
 	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 </cproject>
