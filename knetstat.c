@@ -287,6 +287,8 @@ static int udp_seq_show(struct seq_file *seq, void *v) {
 
 		sock_common_options_show(seq, sk);
 
+		seq_printf(seq, ",SO_BROADCAST=%d", sock_flag(sk, SOCK_BROADCAST));
+
 		seq_printf(seq, "\n");
 	}
 	return 0;
