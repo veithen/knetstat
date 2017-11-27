@@ -97,6 +97,7 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
 		__u16 srcp;
 		int state;
 		struct sock *sk;
+		int fo_qlen = 0;
 
 		switch (st->state) {
 			case TCP_SEQ_STATE_LISTENING:
@@ -122,6 +123,7 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
 				} else {
 					const struct tcp_sock *tp;
 					const struct inet_sock *inet;
+					const struct fastopen_queue *fq;
 
 					tp = tcp_sk(sk);
 					inet = inet_sk(sk);
@@ -131,6 +133,10 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
 						case TCP_LISTEN:
 							rx_queue = sk->sk_ack_backlog;
 							tx_queue = 0;
+							fq = &inet_csk(sk)->icsk_accept_queue.fastopenq;
+							if (fq != NULL) {
+								fo_qlen = fq->max_qlen;
+							}
 							break;
 						#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
 						case TCP_NEW_SYN_RECV:
@@ -222,6 +228,11 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
 			sock_common_options_show(seq, sk);
 
 			seq_printf(seq, ",TCP_NODELAY=%d", !!(tcp_sk(sk)->nonagle&TCP_NAGLE_OFF));
+
+			if (state == TCP_LISTEN) {
+				seq_printf(seq, ",TCP_FASTOPEN=%d", fo_qlen);
+			}
+
 		}
 		seq_printf(seq, "\n");
 	}
