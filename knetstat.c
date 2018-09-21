@@ -98,6 +98,7 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
 		int state;
 		struct sock *sk;
 		int fo_qlen = 0;
+		u8 defer = 0;
 
 		switch (st->state) {
 			case TCP_SEQ_STATE_LISTENING:
@@ -127,6 +128,7 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
 
 					tp = tcp_sk(sk);
 					inet = inet_sk(sk);
+					defer = inet_csk(sk)->icsk_accept_queue.rskq_defer_accept;
 
 					// See get_tcp4_sock in tcp_ipv4.c and get_tcp6_sock in tcp_ipv6.c
 					switch (sk->sk_state) {
@@ -232,6 +234,8 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
 			if (state == TCP_LISTEN) {
 				seq_printf(seq, ",TCP_FASTOPEN=%d", fo_qlen);
 			}
+
+			seq_printf(seq, ",TCP_DEFER_ACCEPT=%d", defer);
 
 		}
 		seq_printf(seq, "\n");
