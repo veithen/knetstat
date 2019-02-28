@@ -230,6 +230,15 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
 
 
 			seq_printf(seq, "SO_REUSEADDR=%d,SO_REUSEPORT=%d,SO_KEEPALIVE=%d", sk->sk_reuse, sk->sk_reuseport, sock_flag(sk, SOCK_KEEPOPEN));
+                        if (tcp_sk(sk)->keepalive_time > 0) {
+                                seq_printf(seq, ",TCP_KEEPIDLE=%u", tcp_sk(sk)->keepalive_time/HZ);
+                        }
+                        if (tcp_sk(sk)->keepalive_probes > 0) {
+                                seq_printf(seq, ",TCP_KEEPCNT=%u", tcp_sk(sk)->keepalive_probes);
+                        }
+                        if (tcp_sk(sk)->keepalive_intvl > 0) {
+                                seq_printf(seq, ",TCP_KEEPINTVL=%u", tcp_sk(sk)->keepalive_intvl/HZ);
+                        }
 
 			sock_common_options_show(seq, sk);
 

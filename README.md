@@ -30,7 +30,13 @@ Currently supported features
 ----------------------------
 
 * Protocols: TCP and UDP (IPv4 and IPv6)
-* Socket options: `SO_REUSEADDR`, `SO_REUSEPORT`, `SO_KEEPALIVE` (TCP), `SO_RCVBUF`, `SO_SNDBUF`, `SO_RCVTIMEO`, `SO_SNDTIMEO`, `SO_LINGER` (TCP), `TCP_NODELAY`, `TCP_FASTOPEN`, `TCP_DEFER_ACCEPT`, `SO_BROADCAST` (UDP)
+* Socket options: `SO_REUSEADDR`, `SO_REUSEPORT`, `SO_KEEPALIVE` (TCP), `TCP_KEEPIDLE` (TCP), `TCP_KEEPCNT` (TCP), `TCP_KEEPINTVL` (TCP), `SO_RCVBUF`, `SO_SNDBUF`, `SO_RCVTIMEO`, `SO_SNDTIMEO`, `SO_LINGER` (TCP), `TCP_NODELAY`, `TCP_FASTOPEN`, `TCP_DEFER_ACCEPT`, `SO_BROADCAST` (UDP)
+
+TCP Keepalive Parameter Handling
+--------------------------------
+
+TCP_KEEPIDLE, TCP_KEEPCNT and TCP_KEEPINTVL correspond to tcp_keepalive_time, tcp_keepalive_probes and tcp_keepalive_intvl values described in tcp(7) and the respective sysctls. If those values are overridden at the socket level (by setting them to something other than zero), they will be printed by knetstat, otherwise, the kernel will use sysctls and the module will ignore them while printing the output.
+
 
 Compatibility
 -------------
