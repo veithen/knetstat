@@ -1,6 +1,6 @@
 /**
  * knetstat
- * Copyright (C) 2013-2017  Andreas Veithen
+ * Copyright (C) 2013-2019  Andreas Veithen
  * Copyright (C) 2014  Google
  *
  * This program is free software; you can redistribute it and/or
