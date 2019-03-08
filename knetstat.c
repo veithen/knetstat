@@ -411,4 +411,4 @@ module_exit(knetstat_exit)
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Andreas Veithen <andreas.veithen@gmail.com>");
-MODULE_DESCRIPTION("Support for /proc/net/tcpstat and /proc/net/tcp6stat");
+MODULE_DESCRIPTION("Support for /proc/net/tcpstat, /proc/net/tcp6stat, /proc/net/udpstat, /proc/net/udp6stat");
