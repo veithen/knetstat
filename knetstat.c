@@ -31,6 +31,10 @@
 
 #include <net/net_namespace.h>
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+#define tcp_time_stamp tcp_time_stamp_raw()
+#endif
+
 // Labels corresponding to the TCP states defined in tcp_states.h
 static const char *const tcp_state_names[] = {
 		"NONE",
