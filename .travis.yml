@@ -1,0 +1,29 @@
+dist: xenial
+language: c
+install:
+  - curl https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-$KERNEL.tar.xz | tar xJ
+script:
+  - cp /boot/config-$(uname -r) linux-$KERNEL/.config
+  - yes "" | make -C linux-$KERNEL oldconfig
+  - make -C linux-$KERNEL modules_prepare
+  - make KSRC=linux-$KERNEL
+jobs:
+  include:
+    - env: KERNEL=4.0
+    - env: KERNEL=4.1
+    - env: KERNEL=4.2
+    - env: KERNEL=4.3
+    - env: KERNEL=4.4
+    - env: KERNEL=4.5
+    - env: KERNEL=4.6
+    - env: KERNEL=4.7
+    - env: KERNEL=4.8
+    - env: KERNEL=4.9
+    - env: KERNEL=4.10
+    - env: KERNEL=4.11
+    - env: KERNEL=4.12
+    - env: KERNEL=4.13
+    - env: KERNEL=4.14
+    - env: KERNEL=4.15
+    - env: KERNEL=4.16
+    - env: KERNEL=4.17
