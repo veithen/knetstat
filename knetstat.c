@@ -91,7 +91,12 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
 		seq_printf(seq, "Recv-Q Send-Q Local Address           Foreign Address         Stat Diag Options\n");
 	} else {
 		struct tcp_iter_state *st = seq->private;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,18,0)
 		sa_family_t family = st->family;
+#else
+		struct tcp_seq_afinfo *afinfo = PDE_DATA(file_inode(seq->file));
+		sa_family_t family = afinfo->family;
+#endif
 
 		int rx_queue;
 		int tx_queue;
@@ -256,6 +261,7 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
 	return 0;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,18,0)
 static const struct file_operations tcp_afinfo_seq_fops = {
 		.owner = THIS_MODULE,
 		.open = tcp_seq_open,
@@ -281,13 +287,41 @@ static struct tcp_seq_afinfo tcp6_seq_afinfo = {
 				.show = tcp_seq_show,
 		},
 };
+#else
+static const struct seq_operations tcpstat_seq_ops = {
+	.show		= tcp_seq_show,
+	.start		= tcp_seq_start,
+	.next		= tcp_seq_next,
+	.stop		= tcp_seq_stop,
+};
+
+static struct tcp_seq_afinfo tcpstat_seq_afinfo = {
+	.family		= AF_INET,
+};
+
+static const struct seq_operations tcp6stat_seq_ops = {
+	.show		= tcp_seq_show,
+	.start		= tcp_seq_start,
+	.next		= tcp_seq_next,
+	.stop		= tcp_seq_stop,
+};
+
+static struct tcp_seq_afinfo tcp6stat_seq_afinfo = {
+	.family		= AF_INET6,
+};
+#endif
 
 static int udp_seq_show(struct seq_file *seq, void *v) {
 	if (v == SEQ_START_TOKEN) {
 		seq_printf(seq, "Recv-Q Send-Q Local Address           Foreign Address         Options\n");
 	} else {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,18,0)
 		struct udp_iter_state *st = seq->private;
 		sa_family_t family = st->family;
+#else
+		struct udp_seq_afinfo *afinfo = PDE_DATA(file_inode(seq->file));
+		sa_family_t family = afinfo->family;
+#endif
 		struct sock *sk = v;
 		int tx_queue = sk_wmem_alloc_get(sk);
 		int rx_queue = sk_rmem_alloc_get(sk);
@@ -322,6 +356,7 @@ static int udp_seq_show(struct seq_file *seq, void *v) {
 	return 0;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,18,0)
 static const struct file_operations udp_afinfo_seq_fops = {
 		.owner = THIS_MODULE,
 		.open = udp_seq_open,
@@ -349,7 +384,33 @@ static struct udp_seq_afinfo udp6_seq_afinfo = {
 				.show = udp_seq_show,
 		},
 };
+#else
+static const struct seq_operations udpstat_seq_ops = {
+	.start		= udp_seq_start,
+	.next		= udp_seq_next,
+	.stop		= udp_seq_stop,
+	.show		= udp_seq_show,
+};
 
+static struct udp_seq_afinfo udpstat_seq_afinfo = {
+	.family		= AF_INET,
+	.udp_table	= &udp_table,
+};
+
+static const struct seq_operations udp6stat_seq_ops = {
+	.start		= udp_seq_start,
+	.next		= udp_seq_next,
+	.stop		= udp_seq_stop,
+	.show		= udp_seq_show,
+};
+
+static struct udp_seq_afinfo udp6stat_seq_afinfo = {
+	.family		= AF_INET6,
+	.udp_table	= &udp_table,
+};
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,18,0)
 static int __net_init knetstat_net_init(struct net *net) {
 	int ret;
 	int registered = 0;
@@ -397,6 +458,59 @@ static void __net_exit knetstat_net_exit(struct net *net) {
 	udp_proc_unregister(net, &udp4_seq_afinfo);
 	udp_proc_unregister(net, &udp6_seq_afinfo);
 }
+#else
+static int __net_init knetstat_net_init(struct net *net) {
+	int ret = 0;
+	int registered = 0;
+
+	if (!proc_create_net_data("tcpstat", 0444, net->proc_net, &tcpstat_seq_ops,
+			sizeof(struct tcp_iter_state), &tcpstat_seq_afinfo)) {
+		ret = -ENOMEM;
+		goto cleanup;
+	}
+	++registered;
+
+	if (!proc_create_net_data("tcp6stat", 0444, net->proc_net, &tcp6stat_seq_ops,
+			sizeof(struct tcp_iter_state), &tcp6stat_seq_afinfo)) {
+		ret = -ENOMEM;
+		goto cleanup;
+	}
+	++registered;
+
+	if (!proc_create_net_data("udpstat", 0444, net->proc_net, &udpstat_seq_ops,
+			sizeof(struct udp_iter_state), &udpstat_seq_afinfo)) {
+		ret = -ENOMEM;
+		goto cleanup;
+	}
+	++registered;
+
+	if (!proc_create_net_data("udp6stat", 0444, net->proc_net, &udp6stat_seq_ops,
+			sizeof(struct udp_iter_state), &udp6stat_seq_afinfo)) {
+		ret = -ENOMEM;
+		goto cleanup;
+	}
+
+	return ret;
+cleanup:
+	if (registered > 2) {
+		remove_proc_entry("udpstat", net->proc_net);
+	}
+	if (registered > 1) {
+		remove_proc_entry("tcp6stat", net->proc_net);
+	}
+	if (registered > 0) {
+		remove_proc_entry("tcpstat", net->proc_net);
+	}
+	return ret;
+}
+
+static void __net_exit knetstat_net_exit(struct net *net) {
+	remove_proc_entry("tcpstat", net->proc_net);
+	remove_proc_entry("tcp6stat", net->proc_net);
+	remove_proc_entry("udpstat", net->proc_net);
+	remove_proc_entry("udp6stat", net->proc_net);
+}
+#endif
 
 static struct pernet_operations knetstat_net_ops = { .init = knetstat_net_init,
 		.exit = knetstat_net_exit, };
