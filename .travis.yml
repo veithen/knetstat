@@ -27,3 +27,6 @@ jobs:
     - env: KERNEL=4.15
     - env: KERNEL=4.16
     - env: KERNEL=4.17
+    - env: KERNEL=4.18
+    - env: KERNEL=4.19
+    - env: KERNEL=4.20
