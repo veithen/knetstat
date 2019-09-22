@@ -413,42 +413,32 @@ static struct udp_seq_afinfo udp6stat_seq_afinfo = {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4,18,0)
 static int __net_init knetstat_net_init(struct net *net) {
 	int ret;
-	int registered = 0;
 
 	ret = tcp_proc_register(net, &tcp4_seq_afinfo);
-	if (ret < 0) {
-		goto cleanup;
-	}
-	++registered;
+	if (ret < 0)
+		goto exit;
 
 	ret = tcp_proc_register(net, &tcp6_seq_afinfo);
-	if (ret < 0) {
-		goto cleanup;
-	}
-	++registered;
+	if (ret < 0)
+		goto unregister_tcpstat;
 
 	ret = udp_proc_register(net, &udp4_seq_afinfo);
-	if (ret < 0) {
-		goto cleanup;
-	}
-	++registered;
+	if (ret < 0)
+		goto unregister_tcp6stat;
 
 	ret = udp_proc_register(net, &udp6_seq_afinfo);
-	if (ret < 0) {
-		goto cleanup;
-	}
+	if (ret < 0)
+		goto unregister_udpstat;
 
 	return ret;
-cleanup:
-	if (registered > 2) {
-		udp_proc_unregister(net, &udp4_seq_afinfo);
-	}
-	if (registered > 1) {
-		tcp_proc_unregister(net, &tcp6_seq_afinfo);
-	}
-	if (registered > 0) {
-		tcp_proc_unregister(net, &tcp4_seq_afinfo);
-	}
+
+unregister_udpstat:
+	udp_proc_unregister(net, &udp4_seq_afinfo);
+unregister_tcp6stat:
+	tcp_proc_unregister(net, &tcp6_seq_afinfo);
+unregister_tcpstat:
+	tcp_proc_unregister(net, &tcp4_seq_afinfo);
+exit:
 	return ret;
 }
 
@@ -460,48 +450,32 @@ static void __net_exit knetstat_net_exit(struct net *net) {
 }
 #else
 static int __net_init knetstat_net_init(struct net *net) {
-	int ret = 0;
-	int registered = 0;
-
 	if (!proc_create_net_data("tcpstat", 0444, net->proc_net, &tcpstat_seq_ops,
-			sizeof(struct tcp_iter_state), &tcpstat_seq_afinfo)) {
-		ret = -ENOMEM;
-		goto cleanup;
-	}
-	++registered;
+			sizeof(struct tcp_iter_state), &tcpstat_seq_afinfo))
+		goto exit;
 
 	if (!proc_create_net_data("tcp6stat", 0444, net->proc_net, &tcp6stat_seq_ops,
-			sizeof(struct tcp_iter_state), &tcp6stat_seq_afinfo)) {
-		ret = -ENOMEM;
-		goto cleanup;
-	}
-	++registered;
+			sizeof(struct tcp_iter_state), &tcp6stat_seq_afinfo))
+		goto unregister_tcpstat;
 
 	if (!proc_create_net_data("udpstat", 0444, net->proc_net, &udpstat_seq_ops,
-			sizeof(struct udp_iter_state), &udpstat_seq_afinfo)) {
-		ret = -ENOMEM;
-		goto cleanup;
-	}
-	++registered;
+			sizeof(struct udp_iter_state), &udpstat_seq_afinfo))
+		goto unregister_tcp6stat;
 
 	if (!proc_create_net_data("udp6stat", 0444, net->proc_net, &udp6stat_seq_ops,
-			sizeof(struct udp_iter_state), &udp6stat_seq_afinfo)) {
-		ret = -ENOMEM;
-		goto cleanup;
-	}
+			sizeof(struct udp_iter_state), &udp6stat_seq_afinfo))
+		goto unregister_udpstat;
 
-	return ret;
-cleanup:
-	if (registered > 2) {
-		remove_proc_entry("udpstat", net->proc_net);
-	}
-	if (registered > 1) {
-		remove_proc_entry("tcp6stat", net->proc_net);
-	}
-	if (registered > 0) {
-		remove_proc_entry("tcpstat", net->proc_net);
-	}
-	return ret;
+	return 0;
+
+unregister_udpstat:
+	remove_proc_entry("udpstat", net->proc_net);
+unregister_tcp6stat:
+	remove_proc_entry("tcp6stat", net->proc_net);
+unregister_tcpstat:
+	remove_proc_entry("tcpstat", net->proc_net);
+exit:
+	return -ENOMEM;
 }
 
 static void __net_exit knetstat_net_exit(struct net *net) {
