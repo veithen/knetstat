@@ -65,32 +65,49 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
 		switch (st->state) {
 			case TCP_SEQ_STATE_LISTENING:
 			case TCP_SEQ_STATE_ESTABLISHED: {
-				const struct tcp_sock *tp;
-				const struct inet_sock *inet;
-
 				sk = v;
-				tp = tcp_sk(sk);
-				inet = inet_sk(sk);
+				if (sk->sk_state == TCP_TIME_WAIT) {
+					const struct inet_timewait_sock *tw = v;
 
-				// See get_tcp4_sock in tcp_ipv4.c and get_tcp6_sock in tcp_ipv6.c
-				if (sk->sk_state == TCP_LISTEN) {
-					rx_queue = sk->sk_ack_backlog;
+					// See get_timewait4_sock in tcp_ipv4.c and get_timewait6_sock in tcp_ipv6.c
+					rx_queue = 0;
+					tx_queue = 0;
+					if (family == AF_INET6) {
+						dest = &tw->tw_v6_daddr;
+						src = &tw->tw_v6_rcv_saddr;
+					} else {
+						dest = &tw->tw_daddr;
+						src = &tw->tw_rcv_saddr;
+					}
+					destp = ntohs(tw->tw_dport);
+					srcp = ntohs(tw->tw_sport);
+					state = tw->tw_substate;
+					sk = NULL;
 				} else {
-					rx_queue = max_t(int, tp->rcv_nxt - tp->copied_seq, 0);
-				}
-				tx_queue = tp->write_seq - tp->snd_una;
-				if (family == AF_INET6) {
-					const struct ipv6_pinfo *np = inet6_sk(sk);
-					dest = &np->daddr;
-					src = &np->rcv_saddr;
-				} else {
-					dest = &inet->inet_daddr;
-					src = &inet->inet_rcv_saddr;
-				}
-				destp = ntohs(inet->inet_dport);
-				srcp = ntohs(inet->inet_sport);
-				state = sk->sk_state;
+					const struct tcp_sock *tp;
+					const struct inet_sock *inet;
 
+					tp = tcp_sk(sk);
+					inet = inet_sk(sk);
+
+					// See get_tcp4_sock in tcp_ipv4.c and get_tcp6_sock in tcp_ipv6.c
+					if (sk->sk_state == TCP_LISTEN) {
+						rx_queue = sk->sk_ack_backlog;
+					} else {
+						rx_queue = max_t(int, tp->rcv_nxt - tp->copied_seq, 0);
+					}
+					tx_queue = tp->write_seq - tp->snd_una;
+					if (family == AF_INET6) {
+						dest = &sk->sk_v6_daddr;
+						src = &sk->sk_v6_rcv_saddr;
+					} else {
+						dest = &inet->inet_daddr;
+						src = &inet->inet_rcv_saddr;
+					}
+					destp = ntohs(inet->inet_dport);
+					srcp = ntohs(inet->inet_sport);
+					state = sk->sk_state;
+				}
 				break;
 			}
 			case TCP_SEQ_STATE_OPENREQ: {
@@ -100,37 +117,15 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
 				rx_queue = 0;
 				tx_queue = 0;
 				if (family == AF_INET6) {
-					const struct inet6_request_sock *ireq6 = inet6_rsk(v);
-					src = &ireq6->loc_addr;
-					dest = &ireq6->rmt_addr;
+					src = &ireq->ir_v6_loc_addr;
+					dest = &ireq->ir_v6_rmt_addr;
 				} else {
-					src = &ireq->loc_addr;
-					dest = &ireq->rmt_addr;
+					src = &ireq->ir_loc_addr;
+					dest = &ireq->ir_rmt_addr;
 				}
 				srcp = ntohs(inet_sk(st->syn_wait_sk)->inet_sport);
-				destp = ntohs(ireq->rmt_port);
+				destp = ntohs(ireq->ir_rmt_port);
 				state = TCP_SYN_RECV;
-				sk = NULL;
-
-				break;
-			}
-			case TCP_SEQ_STATE_TIME_WAIT: {
-				const struct inet_timewait_sock *tw = v;
-
-				// See get_timewait4_sock in tcp_ipv4.c and get_timewait6_sock in tcp_ipv6.c
-				rx_queue = 0;
-				tx_queue = 0;
-				if (family == AF_INET6) {
-					const struct inet6_timewait_sock *tw6 = inet6_twsk((struct sock *)tw);
-					dest = &tw6->tw_v6_daddr;
-					src  = &tw6->tw_v6_rcv_saddr;
-				} else {
-					dest = &tw->tw_daddr;
-					src = &tw->tw_rcv_saddr;
-				}
-				destp = ntohs(tw->tw_dport);
-				srcp = ntohs(tw->tw_sport);
-				state = tw->tw_substate;
 				sk = NULL;
 
 				break;
