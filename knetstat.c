@@ -245,6 +245,10 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
                                 seq_printf(seq, ",TCP_KEEPINTVL=%u", tcp_sk(sk)->keepalive_intvl/HZ);
                         }
 
+                        if (inet_csk(sk)->icsk_user_timeout) {
+                                seq_printf(seq, ",TCP_USER_TIMEOUT=%u", jiffies_to_msecs(inet_csk(sk)->icsk_user_timeout));
+                        }
+
 			sock_common_options_show(seq, sk);
 
 			seq_printf(seq, ",TCP_NODELAY=%d", !!(tcp_sk(sk)->nonagle&TCP_NAGLE_OFF));
