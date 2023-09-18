@@ -19,7 +19,7 @@ jobs:
         - 5.10.22
         - 5.11.6
     name: "Linux ${{ matrix.kernel }}"
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     steps:
     - name: Checkout
       uses: actions/checkout@v2
