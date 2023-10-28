@@ -19,6 +19,8 @@ jobs:
         - 5.4.104
         - 5.10.22
         - 5.11.6
+        - 5.16
+        - 5.17
     name: "Linux ${{ matrix.kernel }}"
     runs-on: ubuntu-22.04
     steps:
