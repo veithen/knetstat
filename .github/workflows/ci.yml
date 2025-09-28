@@ -34,7 +34,9 @@ jobs:
     - name: Configure kernel sources
       run: |
         make -C linux-${{ matrix.kernel }} defconfig
-        make -C linux-${{ matrix.kernel }} modules_prepare
-    - name: Build
+    - name: Build the kernel
+      run: |
+        make -j6 -C linux-${{ matrix.kernel }}
+    - name: Build the module
       run: |
         make KSRC=linux-${{ matrix.kernel }}
