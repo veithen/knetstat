@@ -33,8 +33,7 @@ jobs:
       run: curl https://cdn.kernel.org/pub/linux/kernel/$(echo ${{ matrix.kernel }} | sed -E 's/([^.]+)[.].*/v\1.x/')/linux-${{ matrix.kernel }}.tar.xz | tar xJ
     - name: Configure kernel sources
       run: |
-        cp /boot/config-$(uname -r) linux-${{ matrix.kernel }}/.config
-        yes "" | make -C linux-${{ matrix.kernel }} oldconfig
+        make -C linux-${{ matrix.kernel }} defconfig
         make -C linux-${{ matrix.kernel }} modules_prepare
     - name: Build
       run: |
