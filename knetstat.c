@@ -35,8 +35,8 @@
 #define PDE_DATA(i) pde_data(i)
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
-#define tcp_time_stamp tcp_time_stamp_raw()
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,13,0)
+#define tcp_jiffies32 tcp_time_stamp
 #endif
 
 // Labels corresponding to the TCP states defined in tcp_states.h
@@ -229,7 +229,8 @@ static int tcp_seq_show(struct seq_file *seq, void *v) {
 				} else if (tp->snd_wnd == 0) {
 					// Sender window is 0; we cannot send more data
 					seq_puts(seq, ">|");
-				} else if (tp->snd_nxt > tp->snd_una && tcp_time_stamp-tp->rcv_tstamp > HZ) {
+				// See tcp_get_info for how to calculate the time since the last ACK was received
+				} else if (tp->snd_nxt > tp->snd_una && tcp_jiffies32-tp->rcv_tstamp > HZ) {
 					// There are unacknowledged packets and the last ACK was received more than 1 second ago;
 					// this is an indication for network problems
 					seq_puts(seq, ">#");
